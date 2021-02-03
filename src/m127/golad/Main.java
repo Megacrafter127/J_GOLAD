@@ -3,6 +3,7 @@ package m127.golad;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -11,6 +12,7 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.WindowConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -42,7 +44,7 @@ public class Main extends JFrame implements ActionListener,ChangeListener {
 			System.err.println("Unsupported mode.");
 			break;
 		case LOCAL:
-			Class<? extends BotFactory<?>> red=GameUIFactory.class,blue=red;
+			Class<?> red=GameUIFactory.class,blue=red;
 			int w=20,h=20,initCells=0,numGames=1;
 			for(int i=1;i+1<args.length;i+=2) {
 				switch(args[i].toLowerCase()) {
@@ -60,18 +62,26 @@ public class Main extends JFrame implements ActionListener,ChangeListener {
 					break;
 				case "--red":
 					try {
-						red=(Class<? extends BotFactory<?>>) ClassLoader.getSystemClassLoader().loadClass(args[i+1]);
-					} catch (ClassNotFoundException|ClassCastException e) {
-						System.err.println("Illegall class(red).");
+						red=ClassLoader.getSystemClassLoader().loadClass(args[i+1]);
+						if(!BotFactory.class.isAssignableFrom(red)) {
+							System.err.println("Class is not a BotFactory(red).");
+							return;
+						}
+					} catch (ClassNotFoundException e) {
+						System.err.println("Illegal class(red).");
 						e.printStackTrace();
 						return;
 					}
 					break;
 				case "--blue":
 					try {
-						blue=(Class<? extends BotFactory<?>>) ClassLoader.getSystemClassLoader().loadClass(args[i+1]);
-					} catch (ClassNotFoundException|ClassCastException e) {
-						System.err.println("Illegall class(blue).");
+						blue=ClassLoader.getSystemClassLoader().loadClass(args[i+1]);
+						if(!BotFactory.class.isAssignableFrom(blue)) {
+							System.err.println("Class is not a BotFactory(blue).");
+							return;
+						}
+					} catch (ClassNotFoundException e) {
+						System.err.println("Illegal class(blue).");
 						e.printStackTrace();
 						return;
 					}
@@ -96,7 +106,7 @@ public class Main extends JFrame implements ActionListener,ChangeListener {
 	private JButton start;
 	public Main(ClassLoader loader, String red, String blue, int w, int h, int initCells, int numGames) {
 		super("");
-		super.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		super.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		this.loader = loader==null?ClassLoader.getSystemClassLoader():loader;
 		this.red = new JComboBox<>(DEFAULT_BOTS);
 		this.red.setEditable(true);
@@ -155,9 +165,9 @@ public class Main extends JFrame implements ActionListener,ChangeListener {
 		case SGA:
 			BotFactory<?> r,b;
 			try {
-				r=loader.loadClass(red.getSelectedItem().toString()).asSubclass(BotFactory.class).newInstance();
-				b=loader.loadClass(blue.getSelectedItem().toString()).asSubclass(BotFactory.class).newInstance();
-			} catch (InstantiationException | IllegalAccessException
+				r=loader.loadClass(red.getSelectedItem().toString()).asSubclass(BotFactory.class).getConstructor().newInstance();
+				b=loader.loadClass(blue.getSelectedItem().toString()).asSubclass(BotFactory.class).getConstructor().newInstance();
+			} catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException
 					| ClassNotFoundException e1) {
 				new JOptionPaneMessenger("Error while initializing bots.", "Error").start();
 				return;
